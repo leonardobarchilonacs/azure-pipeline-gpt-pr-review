@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { git } from './git';
 import { addCommentToPR } from './pr';

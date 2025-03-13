@@ -13,7 +13,7 @@
   "version": {
     "Major": "0",
     "Minor": "12",
-    "Patch": "3"
+    "Patch": "4"
   },
   "instanceNameFormat": "BedrockPullRequestReview $(message)",
   "inputs": [
