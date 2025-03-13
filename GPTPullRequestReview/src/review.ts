@@ -1,14 +1,12 @@
-import fetch from 'node-fetch';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { git } from './git';
-import { OpenAIApi } from 'openai';
 import { addCommentToPR } from './pr';
 import { Agent } from 'https';
-import * as tl from "azure-pipelines-task-lib/task";
+import * as tl from 'azure-pipelines-task-lib/task';
 
-export async function reviewFile(targetBranch: string, fileName: string, httpsAgent: Agent, apiKey: string, openai: OpenAIApi | undefined, aoiEndpoint: string | undefined) {
+export async function reviewFile(targetBranch: string, fileName: string, httpsAgent: Agent) {
   console.log(`Start reviewing ${fileName} ...`);
 
-  const defaultOpenAIModel = 'gpt-3.5-turbo';
   const patch = await git.diff([targetBranch, '--', fileName]);
 
   const instructions = `Act as a code reviewer of a Pull Request, providing feedback on possible bugs and clean code issues.
@@ -20,61 +18,50 @@ export async function reviewFile(targetBranch: string, fileName: string, httpsAg
                 - If there's no bugs and the changes are correct, write only 'No feedback.'
                 - If there's bug or uncorrect code changes, don't write 'No feedback.'`;
 
+
+  const prompt = `${instructions}\n\nPatch:\n${patch}`;
+
+  const bedrockClient = new BedrockRuntimeClient({
+    region: tl.getVariable('AWS_REGION') || 'us-east-1',
+    credentials: {
+      accessKeyId: tl.getVariable('AWS_ACCESS_KEY_ID') || '',
+      secretAccessKey: tl.getVariable('AWS_SECRET_ACCESS_KEY') || '',
+    },
+  });
+
+  const bedrockModelId = tl.getInput('bedrockModelId') || 'anthropic.claude-3-sonnet-20240229-v1:0';
+
   try {
-    let choices: any;
+    const params = {
+      modelId: bedrockModelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({
+        prompt,
+        max_tokens_to_sample: 500,
+        temperature: 0,
+      }),
+    };
 
-    if (openai) {
-      const response = await openai.createChatCompletion({
-        model: tl.getInput('model') || defaultOpenAIModel,
-        messages: [
-          {
-            role: "system",
-            content: instructions
-          },
-          {
-            role: "user",
-            content: patch
-          }
-        ],
-        max_tokens: 500
-      });
+    const command = new InvokeModelCommand(params);
+    const response = await bedrockClient.send(command);
 
-      choices = response.data.choices
-    }
-    else if (aoiEndpoint) {
-      const request = await fetch(aoiEndpoint, {
-        method: 'POST',
-        headers: { 'api-key': `${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          max_tokens: 500,
-          messages: [{
-            role: "user",
-            content: `${instructions}\n, patch : ${patch}}`
-          }]
-        })
-      });
+    const decodedResponseBody = new TextDecoder().decode(response.body);
+    const responseBody = JSON.parse(decodedResponseBody);
 
-      const response = await request.json();
+    const review = responseBody.completion.trim();
 
-      choices = response.choices;
-    }
-
-    if (choices && choices.length > 0) {
-      const review = choices[0].message?.content as string;
-
-      if (review.trim() !== "No feedback.") {
-        await addCommentToPR(fileName, review, httpsAgent);
-      }
+    if (review !== "No feedback.") {
+      await addCommentToPR(fileName, review, httpsAgent);
+      console.log(`Comment added to PR for ${fileName}`);
+    } else {
+      console.log(`No feedback for ${fileName}`);
     }
 
     console.log(`Review of ${fileName} completed.`);
   }
   catch (error: any) {
-    if (error.response) {
-      console.log(error.response.status);
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
+    tl.error(`Error invoking AWS Bedrock: ${error.message || error}`);
+    throw error;
   }
 }
