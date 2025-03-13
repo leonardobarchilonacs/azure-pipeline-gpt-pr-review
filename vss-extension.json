@@ -1,11 +1,10 @@
 {
     "manifestVersion": 1,
-    "id": "GPTPullRequestReview",
-    "name": "GPT Pull Request Review",
-    "version": "0.12.3",
-    "publisher": "mustaphalarhrouch",
+    "id": "BedrockPullRequestReview",
+    "name": "Bedrock Pull Request Review",
+    "version": "0.12.4",
+    "publisher": "leonardobarchilonacs",
     "galleryFlags": [
-        "Public",
         "Preview"
     ],
     "targets": [
@@ -28,12 +27,12 @@
     ],
     "files": [
         {
-            "path": "GPTPullRequestReview"
+            "path": "BedrockPullRequestReview"
         }
     ],
     "repository" : {
         "type" : "git",
-        "uri" : "https://github.com/mlarhrouch/azure-pipeline-gpt-pr-review"
+        "uri" : "https://github.com/leonardobarchilonacs/azure-pipeline-gpt-pr-review"
     },
     "content": {
         "details": {
@@ -42,13 +41,13 @@
     },
     "contributions": [
         {
-            "id": "GPTPullRequestReview",
+            "id": "BedrockPullRequestReview",
             "type": "ms.vss-distributed-task.task",
             "targets": [
                 "ms.vss-distributed-task.tasks"
             ],
             "properties": {
-                "name": "GPTPullRequestReview"
+                "name": "BedrockPullRequestReview"
             }
         }
     ]
