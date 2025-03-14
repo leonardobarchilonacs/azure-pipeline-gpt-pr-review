@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "BedrockPullRequestReview",
     "name": "Bedrock Pull Request Review",
-    "version": "0.12.4",
+    "version": "0.12.6",
     "publisher": "leonardobarchilonacs",
     "galleryFlags": [
         "Preview"
